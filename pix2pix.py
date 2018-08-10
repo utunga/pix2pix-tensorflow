@@ -13,13 +13,17 @@ import collections
 import math
 import time
 
+# use the following to control what GPU or CPU it uses
+# 0 = Quadro on BabyBeast, 1 = 1080Ti -1 = CPU
+#import os
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--input_dir", help="path to folder containing images")
-parser.add_argument("--mode", required=True, choices=["train", "test", "export"])
-parser.add_argument("--output_dir", required=True, help="where to put output files")
+parser.add_argument("--input_dir",  default="textures/train",  help="path to folder containing images")
+parser.add_argument("--mode", default="train", choices=["train", "test", "export"])
+parser.add_argument("--output_dir", default="textures_train", help="where to put output files")
 parser.add_argument("--seed", type=int)
 parser.add_argument("--checkpoint", default=None, help="directory with checkpoint to resume training from or use for testing")
-
 parser.add_argument("--max_steps", type=int, help="number of training steps (0 to disable)")
 parser.add_argument("--max_epochs", type=int, help="number of training epochs")
 parser.add_argument("--summary_freq", type=int, default=100, help="update summaries every summary_freq steps")
@@ -27,15 +31,14 @@ parser.add_argument("--progress_freq", type=int, default=50, help="display progr
 parser.add_argument("--trace_freq", type=int, default=0, help="trace execution every trace_freq steps")
 parser.add_argument("--display_freq", type=int, default=0, help="write current training images every display_freq steps")
 parser.add_argument("--save_freq", type=int, default=5000, help="save model every save_freq steps, 0 to disable")
-
 parser.add_argument("--separable_conv", action="store_true", help="use separable convolutions in the generator")
 parser.add_argument("--aspect_ratio", type=float, default=1.0, help="aspect ratio of output images (width/height)")
 parser.add_argument("--lab_colorization", action="store_true", help="split input image into brightness (A) and color (B)")
 parser.add_argument("--batch_size", type=int, default=1, help="number of images in batch")
-parser.add_argument("--which_direction", type=str, default="AtoB", choices=["AtoB", "BtoA"])
+parser.add_argument("--which_direction", default="AtoB", type=str, choices=["AtoB", "BtoA"])
 parser.add_argument("--ngf", type=int, default=64, help="number of generator filters in first conv layer")
 parser.add_argument("--ndf", type=int, default=64, help="number of discriminator filters in first conv layer")
-parser.add_argument("--scale_size", type=int, default=286, help="scale images to this size before cropping to 256x256")
+parser.add_argument("--scale_size", type=int, default=1048, help="scale images to this size before cropping to 256x256")
 parser.add_argument("--flip", dest="flip", action="store_true", help="flip images horizontally")
 parser.add_argument("--no_flip", dest="flip", action="store_false", help="don't flip images horizontally")
 parser.set_defaults(flip=True)
@@ -49,7 +52,7 @@ parser.add_argument("--output_filetype", default="png", choices=["png", "jpeg"])
 a = parser.parse_args()
 
 EPS = 1e-12
-CROP_SIZE = 256
+CROP_SIZE = 1024
 
 Examples = collections.namedtuple("Examples", "paths, inputs, targets, count, steps_per_epoch")
 Model = collections.namedtuple("Model", "outputs, predict_real, predict_fake, discrim_loss, discrim_grads_and_vars, gen_loss_GAN, gen_loss_L1, gen_grads_and_vars, train")
@@ -332,13 +335,15 @@ def create_generator(generator_inputs, generator_outputs_channels):
         layers.append(output)
 
     layer_specs = [
-        a.ngf * 2, # encoder_2: [batch, 128, 128, ngf] => [batch, 64, 64, ngf * 2]
-        a.ngf * 4, # encoder_3: [batch, 64, 64, ngf * 2] => [batch, 32, 32, ngf * 4]
-        a.ngf * 8, # encoder_4: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
-        a.ngf * 8, # encoder_5: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
-        a.ngf * 8, # encoder_6: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
-        a.ngf * 8, # encoder_7: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
-        a.ngf * 8, # encoder_8: [batch, 2, 2, ngf * 8] => [batch, 1, 1, ngf * 8]
+        a.ngf * 2,  # encoder_2: [batch, 512, 512, ngf] => [batch, 256, 256, ngf * 2]
+        a.ngf * 4,  # encoder_3: [batch, 256, 256, ngf * 2] => [batch, 128, 128, ngf * 4]
+        a.ngf * 8,  # encoder_4: [batch, 128, 128, ngf * 4] => [batch, 64, 64, ngf * 8]
+        a.ngf * 8,  # encoder_5: [batch, 64, 64, ngf * 4] => [batch, 32, 32, ngf * 8]
+        a.ngf * 16,  # encoder_6: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
+        a.ngf * 16,  # encoder_7: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
+        a.ngf * 16,  # encoder_8: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
+        a.ngf * 16,  # encoder_9: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
+        a.ngf * 32,  # encoder_10: [batch, 2, 2, ngf * 8] => [batch, 1, 1, ngf * 8]
     ]
 
     for out_channels in layer_specs:
@@ -350,13 +355,15 @@ def create_generator(generator_inputs, generator_outputs_channels):
             layers.append(output)
 
     layer_specs = [
-        (a.ngf * 8, 0.5),   # decoder_8: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
-        (a.ngf * 8, 0.5),   # decoder_7: [batch, 2, 2, ngf * 8 * 2] => [batch, 4, 4, ngf * 8 * 2]
-        (a.ngf * 8, 0.5),   # decoder_6: [batch, 4, 4, ngf * 8 * 2] => [batch, 8, 8, ngf * 8 * 2]
-        (a.ngf * 8, 0.0),   # decoder_5: [batch, 8, 8, ngf * 8 * 2] => [batch, 16, 16, ngf * 8 * 2]
-        (a.ngf * 4, 0.0),   # decoder_4: [batch, 16, 16, ngf * 8 * 2] => [batch, 32, 32, ngf * 4 * 2]
-        (a.ngf * 2, 0.0),   # decoder_3: [batch, 32, 32, ngf * 4 * 2] => [batch, 64, 64, ngf * 2 * 2]
-        (a.ngf, 0.0),       # decoder_2: [batch, 64, 64, ngf * 2 * 2] => [batch, 128, 128, ngf * 2]
+        (a.ngf * 16, 0.5),  # decoder_10: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
+        (a.ngf * 16, 0.5),  # decoder_9: [batch, 2, 2, ngf * 8 * 2] => [batch, 4, 4, ngf * 8 * 2]
+        (a.ngf * 16, 0.5),  # decoder_8: [batch, 4, 4, ngf * 8 * 2] => [batch, 8, 8, ngf * 8 * 2]
+        (a.ngf * 16, 0.5),  # decoder_7: [batch, 8, 8, ngf * 8 * 2] => [batch, 16, 16, ngf * 8 * 2]
+        (a.ngf * 8, 0.5),  # decoder_6: [batch, 16, 16, ngf * 8 * 2] => [batch, 32, 32, ngf * 8 * 2]
+        (a.ngf * 8, 0.5),  # decoder_5: [batch, 32, 32, ngf * 8 * 2] => [batch, 64, 64, ngf * 8 * 2]
+        (a.ngf * 4, 0.0),  # decoder_4: [batch, 64, 64, ngf * 8 * 2] => [batch, 128, 128, ngf * 4 * 2]
+        (a.ngf * 2, 0.0),  # decoder_3: [batch, 128, 128, ngf * 4 * 2] => [batch, 256, 256, ngf * 2 * 2]
+        (a.ngf, 0.0),  # decoder_2: [batch, 256, 256, ngf * 2 * 2] => [batch, 512, 512, ngf * 2]
     ]
 
     num_encoder_layers = len(layers)
@@ -380,7 +387,7 @@ def create_generator(generator_inputs, generator_outputs_channels):
 
             layers.append(output)
 
-    # decoder_1: [batch, 128, 128, ngf * 2] => [batch, 256, 256, generator_outputs_channels]
+    # decoder_1: [batch, 512, 512, ngf * 2] => [batch, 1024, 1024, generator_outputs_channels]
     with tf.variable_scope("decoder_1"):
         input = tf.concat([layers[-1], layers[0]], axis=3)
         rectified = tf.nn.relu(input)
@@ -393,31 +400,33 @@ def create_generator(generator_inputs, generator_outputs_channels):
 
 def create_model(inputs, targets):
     def create_discriminator(discrim_inputs, discrim_targets):
-        n_layers = 3
+        n_interior_layers = 5
         layers = []
 
         # 2x [batch, height, width, in_channels] => [batch, height, width, in_channels * 2]
         input = tf.concat([discrim_inputs, discrim_targets], axis=3)
 
-        # layer_1: [batch, 256, 256, in_channels * 2] => [batch, 128, 128, ndf]
+        # layer_1: [batch, 1024, 1024, in_channels * 2] => [batch, 512, 512, ndf]
         with tf.variable_scope("layer_1"):
             convolved = discrim_conv(input, a.ndf, stride=2)
             rectified = lrelu(convolved, 0.2)
             layers.append(rectified)
 
-        # layer_2: [batch, 128, 128, ndf] => [batch, 64, 64, ndf * 2]
-        # layer_3: [batch, 64, 64, ndf * 2] => [batch, 32, 32, ndf * 4]
-        # layer_4: [batch, 32, 32, ndf * 4] => [batch, 31, 31, ndf * 8]
-        for i in range(n_layers):
+        # layer_2: [batch, 512, 512, ndf] => [batch, 256, 256, ndf * 2]
+        # layer_3: [batch, 256, 256, ndf * 2] => [batch, 128, 128, ndf * 4]
+        # layer_4: [batch, 128, 128, ndf] => [batch, 64, 64, ndf * 8]
+        # layer_5: [batch, 64, 64, ndf * 2] => [batch, 32, 32, ndf * 8]
+        # layer_6: [batch, 32, 32, ndf * 4] => [batch, 31, 31, ndf * 8]
+        for i in range(n_interior_layers):
             with tf.variable_scope("layer_%d" % (len(layers) + 1)):
                 out_channels = a.ndf * min(2**(i+1), 8)
-                stride = 1 if i == n_layers - 1 else 2  # last layer here has stride 1
+                stride = 1 if i == n_interior_layers - 1 else 2  # last layer here has stride 1
                 convolved = discrim_conv(layers[-1], out_channels, stride=stride)
                 normalized = batchnorm(convolved)
                 rectified = lrelu(normalized, 0.2)
                 layers.append(rectified)
 
-        # layer_5: [batch, 31, 31, ndf * 8] => [batch, 30, 30, 1]
+        # layer_7: [batch, 31, 31, ndf * 8] => [batch, 30, 30, 1]
         with tf.variable_scope("layer_%d" % (len(layers) + 1)):
             convolved = discrim_conv(rectified, out_channels=1, stride=1)
             output = tf.sigmoid(convolved)
