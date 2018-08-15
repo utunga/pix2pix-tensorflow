@@ -1,17 +1,21 @@
 <html>
 <body>
 
-<div>edges2cats</div>
-<div id="edges2cats"></div>
+<div>diffuse2normal</div>
+<div id="diffuse2normal"></div>
 
-<div>edges2shoes</div>
-<div id="edges2shoes"></div>
 
-<div>edges2handbags</div>
-<div id="edges2handbags"></div>
+<!--<div>edges2cats</div>-->
+<!--<div id="edges2cats"></div>-->
 
-<div>facades</div>
-<div id="facades"></div>
+<!--<div>edges2shoes</div>-->
+<!--<div id="edges2shoes"></div>-->
+
+<!--<div>edges2handbags</div>-->
+<!--<div id="edges2handbags"></div>-->
+
+<!--<div>facades</div>-->
+<!--<div id="facades"></div>-->
 
 <script src="deeplearn-0.3.15.js"></script>
 <script>
@@ -34,6 +38,35 @@ function main() {
   }
 
   create_editor({
+    name: "diffuse2normal",
+    weights_url: "/diffuse_model.bin",
+    mode: "line",
+    colors: {
+      "0006d9": "#0006d9",
+      "0d3dfb": "#0d3dfb",
+      "a50000": "#a50000",
+      "0075ff": "#0075ff",
+      "68f898": "#68f898",
+      "1dffdd": "#1dffdd",
+      "eeed28": "#eeed28",
+      "b8ff38": "#b8ff38",
+      "ff9204": "#ff9204",
+      "ff4401": "#ff4401",
+      "f60001": "#f60001",
+      "00c9ff": "#00c9ff",
+       eraser: "#ffffff",
+    },
+    clear: "#FFFFFF",
+    draw: "#000000",
+    initial_input: "/diffuse_input.png",
+    initial_output: "/diffuse_output.png",
+    sheet_url: "/edges2cats-sheet.jpg",
+  })
+
+/*
+
+
+  create_editor({
     name: "edges2cats",
     weights_url: "/models/edges2cats_AtoB.pict",
     mode: "line",
@@ -47,6 +80,7 @@ function main() {
     initial_output: "/edges2cats-output.png",
     sheet_url: "/edges2cats-sheet.jpg",
   })
+
 
   create_editor({
     name: "edges2shoes",
@@ -102,6 +136,8 @@ function main() {
     initial_output: "/facades-output.png",
     sheet_url: "/facades-sheet.jpg",
   })
+
+  */
 
   window.requestAnimationFrame(frame)
 }
