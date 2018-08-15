@@ -15,22 +15,22 @@ import time
 
 # use the following to control what GPU or CPU it uses
 # 0 = Quadro on BabyBeast, 1 = 1080Ti -1 = CPU
-#import os
-#os.environ["CUDA_VISIBLE_DEVICES"]="0"
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input_dir",  default="textures/train",  help="path to folder containing images")
-parser.add_argument("--mode", default="train", choices=["train", "test", "export"])
-parser.add_argument("--output_dir", default="textures_train", help="where to put output files")
+parser.add_argument("--input_dir",  default="combo_pruned/train",  help="path to folder containing images")
+parser.add_argument("--mode", default="export", choices=["train", "test", "export"])
+parser.add_argument("--output_dir", default="combo_train", help="where to put output files")
 parser.add_argument("--seed", type=int)
-parser.add_argument("--checkpoint", default=None, help="directory with checkpoint to resume training from or use for testing")
-parser.add_argument("--max_steps", type=int, help="number of training steps (0 to disable)")
-parser.add_argument("--max_epochs", type=int, help="number of training epochs")
-parser.add_argument("--summary_freq", type=int, default=100, help="update summaries every summary_freq steps")
-parser.add_argument("--progress_freq", type=int, default=50, help="display progress every progress_freq steps")
+parser.add_argument("--checkpoint", default="combo_train", help="directory with checkpoint to resume training from or use for testing")
+parser.add_argument("--max_steps", default=None, type=int, help="number of training steps")
+parser.add_argument("--max_epochs", default=None, type=int, help="number of training epochs")
+parser.add_argument("--summary_freq", type=int, default=200, help="update summaries every summary_freq steps")
+parser.add_argument("--progress_freq", type=int, default=200, help="display progress every progress_freq steps")
 parser.add_argument("--trace_freq", type=int, default=0, help="trace execution every trace_freq steps")
-parser.add_argument("--display_freq", type=int, default=0, help="write current training images every display_freq steps")
-parser.add_argument("--save_freq", type=int, default=5000, help="save model every save_freq steps, 0 to disable")
+parser.add_argument("--display_freq", type=int, default=1000, help="write current training images every display_freq steps")
+parser.add_argument("--save_freq", type=int, default=1000, help="save model every save_freq steps, 0 to disable")
 parser.add_argument("--separable_conv", action="store_true", help="use separable convolutions in the generator")
 parser.add_argument("--aspect_ratio", type=float, default=1.0, help="aspect ratio of output images (width/height)")
 parser.add_argument("--lab_colorization", action="store_true", help="split input image into brightness (A) and color (B)")
@@ -38,11 +38,11 @@ parser.add_argument("--batch_size", type=int, default=1, help="number of images 
 parser.add_argument("--which_direction", default="AtoB", type=str, choices=["AtoB", "BtoA"])
 parser.add_argument("--ngf", type=int, default=64, help="number of generator filters in first conv layer")
 parser.add_argument("--ndf", type=int, default=64, help="number of discriminator filters in first conv layer")
-parser.add_argument("--scale_size", type=int, default=1048, help="scale images to this size before cropping to 256x256")
+parser.add_argument("--scale_size", type=int, default=1024, help="scale images to this size before cropping to 1024x1024")
 parser.add_argument("--flip", dest="flip", action="store_true", help="flip images horizontally")
 parser.add_argument("--no_flip", dest="flip", action="store_false", help="don't flip images horizontally")
 parser.set_defaults(flip=True)
-parser.add_argument("--lr", type=float, default=0.0002, help="initial learning rate for adam")
+parser.add_argument("--lr", type=float, default=0.0005, help="initial learning rate for adam")
 parser.add_argument("--beta1", type=float, default=0.5, help="momentum term of adam")
 parser.add_argument("--l1_weight", type=float, default=100.0, help="weight on L1 term for generator gradient")
 parser.add_argument("--gan_weight", type=float, default=1.0, help="weight on GAN term for generator gradient")
@@ -335,11 +335,11 @@ def create_generator(generator_inputs, generator_outputs_channels):
         layers.append(output)
 
     layer_specs = [
-        a.ngf * 2,  # encoder_2: [batch, 512, 512, ngf] => [batch, 256, 256, ngf * 2]
-        a.ngf * 4,  # encoder_3: [batch, 256, 256, ngf * 2] => [batch, 128, 128, ngf * 4]
-        a.ngf * 8,  # encoder_4: [batch, 128, 128, ngf * 4] => [batch, 64, 64, ngf * 8]
+        a.ngf,  # encoder_2: [batch, 512, 512, ngf] => [batch, 256, 256, ngf ]
+        a.ngf * 2,  # encoder_3: [batch, 256, 256, ngf * 2] => [batch, 128, 128, ngf * 4]
+        a.ngf * 4,  # encoder_4: [batch, 128, 128, ngf * 4] => [batch, 64, 64, ngf * 8]
         a.ngf * 8,  # encoder_5: [batch, 64, 64, ngf * 4] => [batch, 32, 32, ngf * 8]
-        a.ngf * 16,  # encoder_6: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
+        a.ngf * 8,  # encoder_6: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
         a.ngf * 16,  # encoder_7: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
         a.ngf * 16,  # encoder_8: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
         a.ngf * 16,  # encoder_9: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
@@ -355,7 +355,7 @@ def create_generator(generator_inputs, generator_outputs_channels):
             layers.append(output)
 
     layer_specs = [
-        (a.ngf * 16, 0.5),  # decoder_10: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
+        (a.ngf * 32, 0.5),  # decoder_10: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
         (a.ngf * 16, 0.5),  # decoder_9: [batch, 2, 2, ngf * 8 * 2] => [batch, 4, 4, ngf * 8 * 2]
         (a.ngf * 16, 0.5),  # decoder_8: [batch, 4, 4, ngf * 8 * 2] => [batch, 8, 8, ngf * 8 * 2]
         (a.ngf * 16, 0.5),  # decoder_7: [batch, 8, 8, ngf * 8 * 2] => [batch, 16, 16, ngf * 8 * 2]
