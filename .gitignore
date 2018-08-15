@@ -3,3 +3,12 @@ tags
 test
 models
 .idea
+**/train/*
+**/val/*
+combo_pruned_tensorboard
+combo_train
+diffuse_to_normal_1024_model
+textures_train
+facades_train
+diffuse_train
+deLit1024_imageSet
