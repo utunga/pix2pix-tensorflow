@@ -19,11 +19,11 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input_dir",  default="combo_pruned/train",  help="path to folder containing images")
+parser.add_argument("--input_dir",  default="delit_1024/train",  help="path to folder containing images")
 parser.add_argument("--mode", default="export", choices=["train", "test", "export"])
-parser.add_argument("--output_dir", default="combo_train", help="where to put output files")
+parser.add_argument("--output_dir", default="delit_1024_train", help="where to put output files")
 parser.add_argument("--seed", type=int)
-parser.add_argument("--checkpoint", default="combo_train", help="directory with checkpoint to resume training from or use for testing")
+parser.add_argument("--checkpoint", default=None, help="directory with checkpoint to resume training from or use for testing")
 parser.add_argument("--max_steps", default=None, type=int, help="number of training steps")
 parser.add_argument("--max_epochs", default=None, type=int, help="number of training epochs")
 parser.add_argument("--summary_freq", type=int, default=200, help="update summaries every summary_freq steps")
@@ -42,7 +42,7 @@ parser.add_argument("--scale_size", type=int, default=1024, help="scale images t
 parser.add_argument("--flip", dest="flip", action="store_true", help="flip images horizontally")
 parser.add_argument("--no_flip", dest="flip", action="store_false", help="don't flip images horizontally")
 parser.set_defaults(flip=True)
-parser.add_argument("--lr", type=float, default=0.0005, help="initial learning rate for adam")
+parser.add_argument("--lr", type=float, default=0.0002, help="initial learning rate for adam")
 parser.add_argument("--beta1", type=float, default=0.5, help="momentum term of adam")
 parser.add_argument("--l1_weight", type=float, default=100.0, help="weight on L1 term for generator gradient")
 parser.add_argument("--gan_weight", type=float, default=1.0, help="weight on GAN term for generator gradient")
@@ -400,33 +400,31 @@ def create_generator(generator_inputs, generator_outputs_channels):
 
 def create_model(inputs, targets):
     def create_discriminator(discrim_inputs, discrim_targets):
-        n_interior_layers = 5
+        n_layers = 3
         layers = []
 
         # 2x [batch, height, width, in_channels] => [batch, height, width, in_channels * 2]
         input = tf.concat([discrim_inputs, discrim_targets], axis=3)
 
-        # layer_1: [batch, 1024, 1024, in_channels * 2] => [batch, 512, 512, ndf]
+        # layer_1: [batch, 256, 256, in_channels * 2] => [batch, 128, 128, ndf]
         with tf.variable_scope("layer_1"):
             convolved = discrim_conv(input, a.ndf, stride=2)
             rectified = lrelu(convolved, 0.2)
             layers.append(rectified)
 
-        # layer_2: [batch, 512, 512, ndf] => [batch, 256, 256, ndf * 2]
-        # layer_3: [batch, 256, 256, ndf * 2] => [batch, 128, 128, ndf * 4]
-        # layer_4: [batch, 128, 128, ndf] => [batch, 64, 64, ndf * 8]
-        # layer_5: [batch, 64, 64, ndf * 2] => [batch, 32, 32, ndf * 8]
-        # layer_6: [batch, 32, 32, ndf * 4] => [batch, 31, 31, ndf * 8]
-        for i in range(n_interior_layers):
+        # layer_2: [batch, 128, 128, ndf] => [batch, 64, 64, ndf * 2]
+        # layer_3: [batch, 64, 64, ndf * 2] => [batch, 32, 32, ndf * 4]
+        # layer_4: [batch, 32, 32, ndf * 4] => [batch, 31, 31, ndf * 8]
+        for i in range(n_layers):
             with tf.variable_scope("layer_%d" % (len(layers) + 1)):
-                out_channels = a.ndf * min(2**(i+1), 8)
-                stride = 1 if i == n_interior_layers - 1 else 2  # last layer here has stride 1
+                out_channels = a.ndf * min(2 ** (i + 1), 8)
+                stride = 1 if i == n_layers - 1 else 2  # last layer here has stride 1
                 convolved = discrim_conv(layers[-1], out_channels, stride=stride)
                 normalized = batchnorm(convolved)
                 rectified = lrelu(normalized, 0.2)
                 layers.append(rectified)
 
-        # layer_7: [batch, 31, 31, ndf * 8] => [batch, 30, 30, 1]
+        # layer_5: [batch, 31, 31, ndf * 8] => [batch, 30, 30, 1]
         with tf.variable_scope("layer_%d" % (len(layers) + 1)):
             convolved = discrim_conv(rectified, out_channels=1, stride=1)
             output = tf.sigmoid(convolved)
