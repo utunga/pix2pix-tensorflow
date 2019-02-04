@@ -265,8 +265,9 @@ def main():
         edge_pool = multiprocessing.Pool(a.workers)
 
     if a.workers == 1:
-        with tf.Session() as sess:
+        with tf.Session() as sess:              
             for src_path, dst_path in zip(src_paths, dst_paths):
+                print("processing {}".format(src_path))
                 process(src_path, dst_path)
                 complete()
     else:

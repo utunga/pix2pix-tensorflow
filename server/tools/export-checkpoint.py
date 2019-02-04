@@ -5,6 +5,7 @@ import subprocess as sp
 import json
 import struct
 import time
+from pathlib import Path
 
 import numpy as np
 
@@ -60,9 +61,12 @@ def main():
         arrays = []
         for name in names:
             value = manifest[name]
-            with open(os.path.join(tmp_dir, value["filename"]), "rb") as f:
-                arr = np.frombuffer(f.read(), dtype=np.float32).copy().reshape(value["shape"])
-                arrays.append(arr)
+            param_path = os.path.join(tmp_dir, value["filename"])
+            if Path(param_path).exists():
+                with open(param_path, "rb") as f:
+                    print("reading from %s"%(param_path))
+                    arr = np.frombuffer(f.read(), dtype=np.float32).copy().reshape(value["shape"])
+                    arrays.append(arr)
 
     shapes = []
     for name, arr in zip(names, arrays):
