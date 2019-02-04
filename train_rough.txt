@@ -1,0 +1,15 @@
+echo "make sure you 'activate pix2pix' before running this"
+z:
+cd \dev\pix2pix-tensorflow
+
+rem to restart where it left off use this one
+
+rem python pix2pix.py --input_dir 24_01_19_Training\bigLook2\roughCombo --checkpoint 24_01_19_Training\models\rough --output_dir 24_01_19_Training\models\rough
+
+
+rem train from scratch
+python pix2pix.py --input_dir 24_01_19_Training\bigLook2\roughCombo --output_dir 24_01_19_Training\models\rough
+
+rem run tensorboard, in a separate window, with this
+rem 
+rem tensorboard --logdir 24_01_19_Training\models\rough 
