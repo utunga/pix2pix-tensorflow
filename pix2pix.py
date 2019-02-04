@@ -13,17 +13,17 @@ import collections
 import math
 import time
 
-# use the following to control what GPU or CPU it uses
-# 0 = Quadro on BabyBeast, 1 = 1080Ti -1 = CPU
-import os
+# # use the following to control what GPU or CPU it uses
+# NV100 =1, 0 = Quadro on BabyBeast, 1 = 1080Ti -1 = CPU
+#import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--input_dir",  default="delit_1024/train",  help="path to folder containing images")
-parser.add_argument("--mode", default="export", choices=["train", "test", "export"])
+parser.add_argument("--mode", default="train", choices=["train", "test", "export"])
 parser.add_argument("--output_dir", default="delit_1024_train", help="where to put output files")
 parser.add_argument("--seed", type=int)
-parser.add_argument("--checkpoint", default=None, help="directory with checkpoint to resume training from or use for testing")
+parser.add_argument("--checkpoint", default="delit_1024_train", help="directory with checkpoint to resume training from or use for testing")
 parser.add_argument("--max_steps", default=None, type=int, help="number of training steps")
 parser.add_argument("--max_epochs", default=None, type=int, help="number of training epochs")
 parser.add_argument("--summary_freq", type=int, default=200, help="update summaries every summary_freq steps")
@@ -626,6 +626,24 @@ def main():
             print("exporting model")
             export_saver.export_meta_graph(filename=os.path.join(a.output_dir, "export.meta"))
             export_saver.save(sess, os.path.join(a.output_dir, "export"), write_meta_graph=False)
+
+            print("saving model")
+            output_graph =  os.path.join(a.output_dir, "frozen_model.pb")
+
+
+            # We use a built-in TF helper to export variables to constants
+            output_graph_def = tf.graph_util.convert_variables_to_constants(
+                sess,  # The session is used to retrieve the weights
+                #tf.get_default_graph().as_graph_def(),  # The graph_def is used to retrieve the nodes
+                output.graph.as_graph_def(),
+                ['packed']  # The output node names are used to select the useful nodes
+            )
+
+            # Finally we serialize and dump the frozen output graph to the filesystem
+            with tf.gfile.GFile(output_graph, "wb") as f:
+                f.write(output_graph_def.SerializeToString())
+            print("%d ops in the final graph." % len(output_graph_def.node))
+
 
         return
 
