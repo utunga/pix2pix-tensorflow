@@ -16,7 +16,7 @@ import time
 # # use the following to control what GPU or CPU it uses
 # NV100 =1, 0 = Quadro on BabyBeast, 1 = 1080Ti -1 = CPU
 #import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]= "0"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--input_dir",  default="delit_1024/train",  help="path to folder containing images")
@@ -34,7 +34,7 @@ parser.add_argument("--save_freq", type=int, default=1000, help="save model ever
 parser.add_argument("--separable_conv", action="store_true", help="use separable convolutions in the generator")
 parser.add_argument("--aspect_ratio", type=float, default=1.0, help="aspect ratio of output images (width/height)")
 parser.add_argument("--lab_colorization", action="store_true", help="split input image into brightness (A) and color (B)")
-parser.add_argument("--batch_size", type=int, default=1, help="number of images in batch")
+parser.add_argument("--batch_size", type=int, default=2, help="number of images in batch")
 parser.add_argument("--which_direction", default="AtoB", type=str, choices=["AtoB", "BtoA"])
 parser.add_argument("--ngf", type=int, default=64, help="number of generator filters in first conv layer")
 parser.add_argument("--ndf", type=int, default=64, help="number of discriminator filters in first conv layer")
@@ -116,7 +116,31 @@ def gen_deconv(batch_input, out_channels):
         resized_input = tf.image.resize_images(batch_input, [h * 2, w * 2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         return tf.layers.separable_conv2d(resized_input, out_channels, kernel_size=4, strides=(1, 1), padding="same", depthwise_initializer=initializer, pointwise_initializer=initializer)
     else:
-        return tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
+        # MKT
+        # instead of this - which seems to create artifacts
+        # return tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
+        # 
+        # we resize first using nearest neighbors..
+        _b, h, w, _c = batch_input.shape
+        resized_input = tf.image.resize_images( batch_input, [h * 2, w * 2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+        # then do the deconvolution..
+        return tf.layers.conv2d_transpose(resized_input, out_channels, kernel_size=4, strides=(1, 1), padding="same", kernel_initializer=initializer)
+
+# # FROM
+#          model += [nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2),
+#                                          kernel_size=3, stride=2,
+#                                          padding=1, output_padding=1,
+#                                          bias=use_bias),
+#                       norm_layer(int(ngf * mult / 2)),
+#                       nn.ReLU(True)]  
+
+#    TO 
+
+#                 nn.Upsample(scale_factor = 2, mode='bilinear'),
+#                 nn.ReflectionPad2d(1),
+#                 nn.Conv2d(ngf * mult, int(ngf * mult / 2),
+#                                  kernel_size=3, stride=1, padding=0),      
 
 
 def lrelu(x, a):
