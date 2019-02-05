@@ -118,14 +118,35 @@ def gen_deconv(batch_input, out_channels):
     else:
         # MKT
         # instead of this - which seems to create artifacts
-        # return tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
+        old = tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
+
+        print("old.shape")
+        print(old.shape)
+
         # 
         # we resize first using nearest neighbors..
         _b, h, w, _c = batch_input.shape
+        print("batch_input.shape")
+        print(batch_input.shape)
         resized_input = tf.image.resize_images( batch_input, [h * 2, w * 2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        
+        # add some padding (to deal with artifacts at edges of the image)
+        paddings = tf.constant([[0,0], [1, 1], [1, 1], [0,0]])
+        print("resized_input.shape")
+        print(resized_input.shape)
+        padded = tf.pad(resized_input, paddings, "REFLECT")
 
-        # then do the deconvolution..
-        return tf.layers.conv2d_transpose(resized_input, out_channels, kernel_size=4, strides=(1, 1), padding="same", kernel_initializer=initializer)
+        print("padded.shape")
+        print(padded.shape)
+
+        # then do convolution
+        dconv = tf.layers.conv2d(padded, filters=out_channels, kernel_size=(h, w), strides=2, padding="VALID", kernel_initializer=initializer)
+
+
+        print("dconv.shape")
+        print(dconv.shape)
+
+        return dconv
 
 # # FROM
 #          model += [nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2),

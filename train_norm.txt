@@ -7,9 +7,9 @@ rem to restart training where it left off use this one
 python pix2pix.py --input_dir 24_01_19_Training\bigLook2\normCombo --checkpoint 24_01_19_Training\deconv_models\norm --output_dir 24_01_19_Training\deconv_models\norm
 
 rem train from scratch
-rem python pix2pix.py --input_dir 24_01_19_Training\bigLook2\normCombo --output_dir 24_01_19_Training\deconv_models\norm
+python pix2pix.py --input_dir 24_01_19_Training\bigLook2\normCombo --output_dir 24_01_19_Training\deconv_models\norm
 
 rem run tensorboard, in a separate window, with this
 rem 
-rem tensorboard --logdir 24_01_19_Training\deconv_models\norm
+tensorboard --logdir 24_01_19_Training\deconv_models\norm
 
