@@ -19,9 +19,9 @@ import time
 os.environ["CUDA_VISIBLE_DEVICES"]= "0"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input_dir",  default="delit_1024/train",  help="path to folder containing images")
+parser.add_argument("--input_dir",  default=None,  help="path to folder containing images")
 parser.add_argument("--mode", default="train", choices=["train", "test", "export"])
-parser.add_argument("--output_dir", default="delit_1024_train", help="where to put output files")
+parser.add_argument("--output_dir", default=None, help="where to put output files")
 parser.add_argument("--seed", type=int)
 parser.add_argument("--checkpoint", default=None, help="directory with checkpoint to resume training from or use for testing")
 parser.add_argument("--max_steps", default=None, type=int, help="number of training steps")
