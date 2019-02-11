@@ -56,6 +56,7 @@ switch ( $mode )
 {
     "delit" 
     {
+        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
         Write-Host "Processing Delit.."
         cd $delitPath 
         python pix2pix_batch.py --input_dir $inputFolder --checkpoint $delitModel --output_dir $outputFolder    
@@ -63,6 +64,7 @@ switch ( $mode )
 
     "normal" 
     {
+        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
         Write-Host "Processing Normals.."
         cd $normalPath 
         python pix2pix_batchOldDirVers.py --input_dir $inputFolder --checkpoint $normalModel --output_dir $outputFolder   
@@ -70,6 +72,7 @@ switch ( $mode )
 
     "displace" 
     {
+        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
         Write-Host "Processing Displacement.."
         cd $displacePath 
         python pix2pix_batch.py --input_dir $inputFolder --checkpoint $displaceModel --output_dir $outputFolder    
@@ -77,6 +80,7 @@ switch ( $mode )
 
     "roughness" 
     {
+        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
         Write-Host "Processing Rroughness.."
         cd $roughnessPath 
         python pix2pix_batch.py --input_dir $inputFolder --checkpoint $roughnessModel --output_dir $outputFolder    
