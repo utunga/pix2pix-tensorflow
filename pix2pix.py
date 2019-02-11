@@ -136,7 +136,7 @@ def gen_deconv(batch_input, out_channels):
         
         # unfortunately we can't do this the 'right' way for all layers or we get an OOM
         # so, by trial and error do it for only so many layers
-        if (h>16):
+        if (h>8):
             return tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
         else:
             resized_input = tf.image.resize_images( batch_input, [h * 2, w * 2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
