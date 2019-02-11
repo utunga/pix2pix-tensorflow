@@ -136,25 +136,30 @@ def gen_deconv(batch_input, out_channels):
         
         # unfortunately we can't do this the 'right' way for all layers or we get an OOM
         # so, by trial and error do it for only so many layers
-        if (h>8):
-            return tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
-        else:
-            resized_input = tf.image.resize_images( batch_input, [h * 2, w * 2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            # print("resized_input.shape")
-            # print(resized_input.shape)
+        # if (False):
+        #     return tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
+        # else:
 
-            # add some padding .. 
-            # WAIT WE DONT *NEED* TO ADD PADDING in our case because h/w fit nicely
-            # paddings = tf.constant([[0,0], [1, 1], [1, 1], [0,0]])
-            # padded = tf.pad(resized_input, paddings, "CONSTANT")
-            # print("padded.shape")
-            # print(padded.shape)
+        #tmp = tf.layers.conv2d_transpose(batch_input, out_channels, kernel_size=4, strides=(2, 2), padding="same", kernel_initializer=initializer)
+        #print("old.shape")
+        #print(tmp.shape)
 
-            # then do normal convolution to bring it back to same size (with no padding)
-            return tf.layers.conv2d(resized_input, filters=out_channels, kernel_size=(h*2, w*2), strides=(1,1), padding="SAME", kernel_initializer=initializer)
-            # print("dconv.shape")
-            # print(dconv.shape)
-            # return dconv;
+        resized_input = tf.image.resize_images( batch_input, [h * 2, w * 2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        print("resized_input.shape")
+        print(resized_input.shape)
+
+        # add some padding .. 
+        # WAIT WE DONT *NEED* TO ADD PADDING in our case because h/w fit nicely
+        # paddings = tf.constant([[0,0], [1, 1], [1, 1], [0,0]])
+        # padded = tf.pad(resized_input, paddings, "CONSTANT")
+        # print("padded.shape")
+        # print(padded.shape)
+
+        # then do normal convolution to bring it back to same size (with no padding)
+        dconv = tf.layers.conv2d(resized_input, filters=out_channels, kernel_size=(2, 2), strides=(1,1), padding="SAME", kernel_initializer=initializer)
+        print("dconv.shape")
+        print(dconv.shape)
+        return dconv;
 
 
 def lrelu(x, a):
