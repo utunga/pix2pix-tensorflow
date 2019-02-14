@@ -156,7 +156,7 @@ def gen_deconv(batch_input, out_channels):
         # print(padded.shape)
 
         # then do normal convolution to bring it back to same size (with no padding)
-        dconv = tf.layers.conv2d(resized_input, filters=out_channels, kernel_size=(2, 2), strides=(1,1), padding="SAME", kernel_initializer=initializer)
+        dconv = tf.layers.conv2d(resized_input, filters=out_channels, kernel_size=(3, 3), strides=(1,1), padding="SAME", kernel_initializer=initializer)
         print("dconv.shape")
         print(dconv.shape)
         return dconv;
