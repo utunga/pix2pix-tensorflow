@@ -8,10 +8,11 @@
 
 [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
 
-$delitModel="delit_1024_train"
+$delitModel="Models_Evaluation\delit"
 $normalModel="combo_train"
-$displaceModel="displaceCombo1024_train"
-$roughnessModel="roughCombo_1024_train"
+$displaceModel="Models_Current\displacement"
+$roughnessModel="Models_Current\roughness"
+#$roughnessModel="Models_Evaluation\A_B\roughness"
 
 # -- 
 
@@ -39,7 +40,7 @@ if (-not (Test-Path $inputFolder)) {
 }
 
 # -- 
-
+# pix2pix.py --input_dir Models_Evaluation\A_B\delit --output_dir Models_Evaluation\models\delit --checkpoint Models_Evaluation\models\delit
 
 # Run the following to install the needed extensions to enable conda 'activate' to work in powershell context
 # C:\xxx\>conda install -n root -c pscondaenvs pscondaenvs
@@ -56,7 +57,6 @@ switch ( $mode )
 {
     "delit" 
     {
-        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
         Write-Host "Processing Delit.."
         cd $delitPath 
         python pix2pix_batch.py --input_dir $inputFolder --checkpoint $delitModel --output_dir $outputFolder    
@@ -64,7 +64,6 @@ switch ( $mode )
 
     "normal" 
     {
-        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
         Write-Host "Processing Normals.."
         cd $normalPath 
         python pix2pix_batchOldDirVers.py --input_dir $inputFolder --checkpoint $normalModel --output_dir $outputFolder   
@@ -72,7 +71,6 @@ switch ( $mode )
 
     "displace" 
     {
-        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
         Write-Host "Processing Displacement.."
         cd $displacePath 
         python pix2pix_batch.py --input_dir $inputFolder --checkpoint $displaceModel --output_dir $outputFolder    
@@ -80,9 +78,9 @@ switch ( $mode )
 
     "roughness" 
     {
-        [Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", 1);
-        Write-Host "Processing Rroughness.."
+        Write-Host "Processing Roughness.."
         cd $roughnessPath 
+        #Write-Host "python pix2pix.py --mode test --input_dir $inputFolder --checkpoint $roughnessModel --output_dir $outputFolder" 
         python pix2pix_batch.py --input_dir $inputFolder --checkpoint $roughnessModel --output_dir $outputFolder    
     }
 
