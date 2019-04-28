@@ -16,14 +16,14 @@ import time
 # use the following to control what GPU or CPU it uses
 # 0 = Quadro on BabyBeast, 1 = 1080Ti -1 = CPU
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]= "-1" #"0"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input_dir",  default="combo_pruned/train",  help="path to folder containing images")
-parser.add_argument("--mode", default="export", choices=["train", "test", "export"])
-parser.add_argument("--output_dir", default="combo_train", help="where to put output files")
+parser.add_argument("--input_dir",  default=None,  help="path to folder containing images")
+parser.add_argument("--mode", default="train", choices=["train", "test", "export"])
+parser.add_argument("--output_dir", default=None, help="where to put output files")
 parser.add_argument("--seed", type=int)
-parser.add_argument("--checkpoint", default="combo_train", help="directory with checkpoint to resume training from or use for testing")
+parser.add_argument("--checkpoint", default=None, help="directory with checkpoint to resume training from or use for testing")
 parser.add_argument("--max_steps", default=None, type=int, help="number of training steps")
 parser.add_argument("--max_epochs", default=None, type=int, help="number of training epochs")
 parser.add_argument("--summary_freq", type=int, default=200, help="update summaries every summary_freq steps")
@@ -261,7 +261,7 @@ def load_examples():
         path_queue = tf.train.string_input_producer(input_paths, shuffle=a.mode == "train")
         reader = tf.WholeFileReader()
         paths, contents = reader.read(path_queue)
-        raw_input = decode(contents)
+        raw_input = decode(contents, channels=3)
         raw_input = tf.image.convert_image_dtype(raw_input, dtype=tf.float32)
 
         assertion = tf.assert_equal(tf.shape(raw_input)[2], 3, message="image does not have 3 channels")
@@ -314,6 +314,14 @@ def load_examples():
     with tf.name_scope("target_images"):
         target_images = transform(targets)
 
+    print("----------------")
+    # with tf.Session() as sess:
+    #     pathx = sess.run(paths)
+    #     print(pathx)
+
+    print(a.batch_size)
+    print("----------------")
+    
     paths_batch, inputs_batch, targets_batch = tf.train.batch([paths, input_images, target_images], batch_size=a.batch_size)
     steps_per_epoch = int(math.ceil(len(input_paths) / a.batch_size))
 
@@ -725,6 +733,7 @@ def main():
             print("loading model from checkpoint")
             checkpoint = tf.train.latest_checkpoint(a.checkpoint)
             saver.restore(sess, checkpoint)
+            print(".. done loading checkpoint")
 
         max_steps = 2**32
         if a.max_epochs is not None:
