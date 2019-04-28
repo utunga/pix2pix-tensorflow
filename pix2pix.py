@@ -16,7 +16,7 @@ import time
 # use the following to control what GPU or CPU it uses
 # 0 = Quadro on BabyBeast, 1 = 1080Ti -1 = CPU
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]= "-1" #"0"
+os.environ["CUDA_VISIBLE_DEVICES"]= "0"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--input_dir",  default=None,  help="path to folder containing images")
@@ -313,14 +313,6 @@ def load_examples():
 
     with tf.name_scope("target_images"):
         target_images = transform(targets)
-
-    print("----------------")
-    # with tf.Session() as sess:
-    #     pathx = sess.run(paths)
-    #     print(pathx)
-
-    print(a.batch_size)
-    print("----------------")
     
     paths_batch, inputs_batch, targets_batch = tf.train.batch([paths, input_images, target_images], batch_size=a.batch_size)
     steps_per_epoch = int(math.ceil(len(input_paths) / a.batch_size))
